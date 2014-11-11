@@ -146,8 +146,13 @@ class NessusRestClient:
         return contents['scan']
 
 
-    def scan_status(self, uuid):
-        ''' returns status of scan w/ id uuid '''
-        pass
+    def get_scan_info(self, uuid):
+        ''' returns status of scan uuid '''
+        url = self.url + '/result/details'
+        data = {'id'    : str(uuid),
+                'token' : self.token,
+                'json'  : '1'}
+        r, contents = self.__post(url, data)
+        return contents['info']
 
 
