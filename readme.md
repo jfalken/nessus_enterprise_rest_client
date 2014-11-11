@@ -10,9 +10,9 @@ Only a few methods are implemented; this will be updated as I use it more and ne
 
 ## Sample Usage
 
+```python
 from NessusClient import NessusRestClient
 
-```python
 proxies = {
   "http": "http://127.0.0.1:8080",
   "https": "http://127.0.0.1:8080",
