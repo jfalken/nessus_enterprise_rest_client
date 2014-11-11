@@ -49,7 +49,7 @@ class NessusRestClient:
         ''' POST wrapper, returns response and .json()['reply']['contents'] '''
         if self.authenticated == False:
             self.login()
-        if proxies:
+        if self.proxies:
             r = self.s.post(url=url, data=data, proxies=self.proxies)
         else:
             r = self.s.post(url=url, data=data)
@@ -65,7 +65,7 @@ class NessusRestClient:
         data = {'login'   : self.username,
                 'password': self.password,
                 'json'    : '1'}
-        if proxies:
+        if self.proxies:
             r = self.s.post(url=url, data=data, proxies=self.proxies)
         else:
             r = self.s.post(url=url, data=data)
