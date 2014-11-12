@@ -156,3 +156,42 @@ class NessusRestClient:
         return contents['info']
 
 
+    def __request_xml_download(self, uuid):
+        ''' requests to download report uuid as xml; returns file-id '''
+        url = self.url + '/result/export'
+        data = {'id'    : str(uuid),
+                'token' : self.token,
+                'format': 'nessus.v2',
+                'json'  : '1'}
+        r, contents = self.__post(url, data)
+        return contents['file']
+
+
+    def __check_file_dl_status(self, file_id):
+        ''' checks status of file_id; returns status '''
+        url = self.url + '/result/export/status'
+        data = {'rid'    : str(file_id),
+                'token' : self.token,
+                'json'  : '1'}
+        r, contents = self.__post(url, data)
+        return contents['status']
+
+
+    def dl_xml_report(self, uuid):
+        ''' downloads report for uuid; returns file '''
+        file_id = self.__request_xml_download(uuid)
+        status = ''
+        count = 0
+        while status != 'ready':
+            if count > 10: break
+            status = self.__check_file_dl_status(file_id)
+            count += 1
+            time.sleep(5)
+
+        resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
+        return resp
+
+
+
+
+
