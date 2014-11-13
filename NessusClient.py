@@ -183,7 +183,8 @@ class NessusRestClient:
         status = ''
         count = 0
         while status != 'ready':
-            if count > 10: break
+            if count > 10:
+                return 'skipped'
             status = self.__check_file_dl_status(file_id)
             count += 1
             time.sleep(5)
@@ -191,6 +192,33 @@ class NessusRestClient:
         resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
         return resp
 
+
+    def __request_html_download(self, uuid):
+        ''' requests to download report uuid as xml; returns file-id '''
+        url = self.url + '/result/export'
+        data = {'id'      : str(uuid),
+                'token'   : self.token,
+                'format'  : 'nchapter.html',
+                'chapters': 'vuln_hosts_summary;vuln_by_host',
+                'json'    : '1'}
+        r, contents = self.__post(url, data)
+        return contents['file']
+
+
+    def dl_html_report(self, uuid):
+        ''' downloads report for uuid; returns file '''
+        file_id = self.__request_html_download(uuid)
+        status = ''
+        count = 0
+        while status != 'ready':
+            if count > 10:
+                return 'skipped'
+            status = self.__check_file_dl_status(file_id)
+            count += 1
+            time.sleep(5)
+
+        resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
+        return resp
 
 
 
