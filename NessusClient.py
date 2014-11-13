@@ -53,9 +53,12 @@ class NessusRestClient:
             r = self.s.post(url=url, data=data, proxies=self.proxies)
         else:
             r = self.s.post(url=url, data=data)
-        if r.json()['reply']['status'] == 'OK':
-            contents = r.json()['reply']['contents']
-            return (r, contents)
+        try:
+            if r.json()['reply']['status'] == 'OK':
+                contents = r.json()['reply']['contents']
+                return (r, contents)
+        except:
+            return None
         return None
 
 
@@ -183,11 +186,11 @@ class NessusRestClient:
         status = ''
         count = 0
         while status != 'ready':
-            if count > 10:
+            if count > 30:
                 return 'skipped'
             status = self.__check_file_dl_status(file_id)
             count += 1
-            time.sleep(5)
+            time.sleep(10)
 
         resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
         return resp
@@ -211,11 +214,11 @@ class NessusRestClient:
         status = ''
         count = 0
         while status != 'ready':
-            if count > 10:
+            if count > 30:
                 return 'skipped'
             status = self.__check_file_dl_status(file_id)
             count += 1
-            time.sleep(5)
+            time.sleep(10)
 
         resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
         return resp
