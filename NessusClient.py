@@ -46,7 +46,9 @@ class NessusRestClient:
 
 
     def __post(self, url, data):
-        ''' POST wrapper, returns response and .json()['reply']['contents'] '''
+        ''' POST wrapper, returns response and .json()['reply']['contents'] 
+            or ('error',error message) if an error occurs
+        '''
         if self.authenticated == False:
             self.login()
         if self.proxies:
@@ -54,12 +56,15 @@ class NessusRestClient:
         else:
             r = self.s.post(url=url, data=data)
         try:
-            if r.json()['reply']['status'] == 'OK':
-                contents = r.json()['reply']['contents']
+            resp = r.json()
+            if resp.has_key('reply'):
+                contents = resp['reply']['contents']
                 return (r, contents)
+            elif resp.has_key('error'):
+                return ('error', resp['error'])
         except:
-            return None
-        return None
+            pass
+        return ('error', 'error')
 
 
     def login(self):
@@ -94,6 +99,8 @@ class NessusRestClient:
         data = {'token' : self.token,
                 'json'  : '1'}
         r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['policies']['policy']
 
 
@@ -146,6 +153,8 @@ class NessusRestClient:
                 'notification_filters': '[]',
                 'json'  : '1'}
         r, contents = self.__post(url, data) # uuid is the scan id
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['scan']
 
 
@@ -156,6 +165,8 @@ class NessusRestClient:
                 'token' : self.token,
                 'json'  : '1'}
         r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['info']
 
 
@@ -167,6 +178,8 @@ class NessusRestClient:
                 'format': 'nessus.v2',
                 'json'  : '1'}
         r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['file']
 
 
@@ -177,6 +190,8 @@ class NessusRestClient:
                 'token' : self.token,
                 'json'  : '1'}
         r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['status']
 
 
@@ -205,6 +220,8 @@ class NessusRestClient:
                 'chapters': 'vuln_hosts_summary;vuln_by_host',
                 'json'    : '1'}
         r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
         return contents['file']
 
 
