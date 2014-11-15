@@ -241,5 +241,39 @@ class NessusRestClient:
         return resp
 
 
+    def get_scheduled_scans(self):
+        '''  returns a list of scheduled scan dicts; 'id'
+             in response is the schedule_id
+        '''
+        url = self.url + '/schedule/list'
+        data = {'token' : self.token,
+                'json'  : '1'}
+        r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
+        return contents
+
+
+    def get_scheduled_scan(self, scan_name):
+        ''' returns a scan record with name scan_name '''
+        scans = self.get_scheduled_scans()
+        for s in scans:
+            if s['name'] == scan_name:
+                return s
+
+
+    def launch_scheduled_scan(self, schedule_id):
+        '''  launch a scheduled scans '''
+        url = self.url + '/schedule/launch'
+        data = {'schedule_id' : schedule_id,
+                'token' : self.token,
+                'json'  : '1'}
+        r, contents = self.__post(url, data)
+        if r == 'error':
+            raise Exception('Unknown Error --> ' + str(contents))
+        return contents['scan']
+
+
+
 
 
