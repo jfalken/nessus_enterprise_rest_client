@@ -217,7 +217,7 @@ class NessusRestClient:
         data = {'id'      : str(uuid),
                 'token'   : self.token,
                 'format'  : 'nchapter.html',
-                'chapters': 'vuln_hosts_summary;vuln_by_host',
+                'chapters': 'vuln_hosts_summary;vuln_by_plugin;vuln_by_host',
                 'json'    : '1'}
         r, contents = self.__post(url, data)
         if r == 'error':
