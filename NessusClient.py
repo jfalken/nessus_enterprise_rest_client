@@ -208,6 +208,8 @@ class NessusRestClient:
             time.sleep(10)
 
         resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
+        if len(resp.content) == 0:
+            raise Exception('ERROR: Zero content length')
         return resp
 
 
@@ -238,6 +240,8 @@ class NessusRestClient:
             time.sleep(10)
 
         resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
+        if len(resp.content) == 0:
+            raise Exception('ERROR: Zero content length')
         return resp
 
 
