@@ -2,7 +2,7 @@
 
 This is a python library for interfacing with the Tenable Nessus Enterprise Cloud scanning service. This was created because I did not like the existing libraries for this. This is based on reversing the REST API that one uses while interfacing with the service via the web browser; it does NOT use the documented XML/RPC API, which is lacking features.
 
-This library was originally made by reversing the web API as a user logged into the console. Since then, Tenable has released their v6 REST API, which this library is compatible with.
+This library was originally made by reversing the web API as a user logged into the console. Since then, Tenable has released their v6 REST API. Modifications are needed to make this work with v6; those updates will be worked on and added here.
 
 ## Status
 
