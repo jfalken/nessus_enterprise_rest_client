@@ -1,6 +1,6 @@
 At the time of writing this, the Nessus server only supports TLS1.0.
 
-Output via iSec's SSLyze tool:
+Output via iSec's [SSLyze tool](https://github.com/nabla-c0d3/sslyze):
 
 ```bash
 (venv)chris:sslyze/ $ ./sslyze.py localhost:8834 --regular
