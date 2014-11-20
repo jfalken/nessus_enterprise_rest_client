@@ -1,6 +1,5 @@
-''' Nessus Rest API Client;
-    by jfalken. written using requests sessions and because I did not like
-    the existing nessus libraries on github
+''' Nessus Rest API Client, for use with the Nessus v6 RESTful API
+    by jfalken; https://github.com/jfalken/nessus_enterprise_rest_client
 '''
 
 import requests
@@ -26,10 +25,11 @@ class MyAdapter(HTTPAdapter):
 class NessusRestClient:
     ''' Uses the undocumented REST API for Nessus (ie, the web interface) '''
 
-    def __init__(self, server, username, password, port=443, proxies=None):
+    def __init__(self, server, username, password, port=443, verify=True, proxies=None):
         ''' 'server' - https://nessus.server.org
             'username' - login username
             'password' - login password
+            'verify' - SSL cert verification; set to False if using locally and self-signed certs
             'port' - optional; int of port, default is 443
             'proxies' - optional; dict of 'http' and 'https' proxies w port
         '''
@@ -42,42 +42,52 @@ class NessusRestClient:
         self.password = password
         self.authenticated = False
         self.token = None
+        self.verify = verify
         self.proxies = proxies
 
 
-    def __post(self, url, data):
+    def __request(self, url, data={}, method='POST'):
         ''' POST wrapper, returns response and .json()['reply']['contents'] 
             or ('error',error message) if an error occurs
         '''
         if self.authenticated == False:
             self.login()
-        if self.proxies:
-            r = self.s.post(url=url, data=data, proxies=self.proxies)
-        else:
-            r = self.s.post(url=url, data=data)
-        try:
-            resp = r.json()
-            if resp.has_key('reply'):
-                contents = resp['reply']['contents']
-                return (r, contents)
-            elif resp.has_key('error'):
-                return ('error', resp['error'])
-        except:
-            pass
-        return ('error', 'error')
+        if method == 'GET':
+            if self.proxies:
+                r = self.s.get(url=url, data=data, proxies=self.proxies, verify=self.verify)
+            else:
+                r = self.s.get(url=url, data=data, verify=self.verify)
+        if method == 'POST':
+            if self.proxies:
+                r = self.s.post(url=url, data=data, proxies=self.proxies, verify=self.verify)
+            else:
+                r = self.s.post(url=url, data=data, verify=self.verify)
+        if method == 'DELETE':
+            if self.proxies:
+                r = self.s.delete(url=url, data=data, proxies=self.proxies, verify=self.verify)
+            else:
+                r = self.s.delete(url=url, data=data, verify=self.verify)
+        if method == 'PUT':
+            if self.proxies:
+                r = self.s.put(url=url, data=data, proxies=self.proxies, verify=self.verify)
+            else:
+                r = self.s.put(url=url, data=data, verify=self.verify)
+
+        return r
 
 
     def login(self):
-        ''' login; does not use the __post wrapper since this is pre-auth '''
-        url = self.url + '/session/login'
-        data = {'login'   : self.username,
-                'password': self.password,
-                'json'    : '1'}
+        ''' login; does not use the __request wrapper since this is pre-auth '''
+        self.authenticated = False
+        self.token = None
+        url = self.url + '/session'
+        data = {'username' : self.username,
+                'password' : self.password }
         if self.proxies:
-            r = self.s.post(url=url, data=data, proxies=self.proxies)
+            r = self.s.post(url=url, data=data, proxies=self.proxies, verify=self.verify)
         else:
-            r = self.s.post(url=url, data=data)
-        contents = r.json()['reply']['contents']
+            r = self.s.post(url=url, data=data, verify=self.verify)
+        contents = r.json()
         self.token = contents['token']
         self.authenticated = True
         self.s.headers.update({'X-Cookie':'token=' + self.token})
@@ -85,28 +95,41 @@ class NessusRestClient:
 
 
     def logout(self):
-        url = self.url + '/session/logout'
-        data = {'login': self.username,
-                'token': self.token,
-                'json' : '1'}
-        r, contents = self.__post(url, data)
-        return r
+        url = self.url + '/session'
+        r = self.__request(url, method='DELETE')
+        if r.status_code == 200:
+            self.authenticated = False
+            self.token = None
+            self.s.headers.pop('X-Cookie')
+            return r
+        else:
+            pass
 
 
     def get_scan_policies(self):
         ''' returns a list of all scan policies '''
-        url = self.url + '/policy/list/policies'
-        data = {'token' : self.token,
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['policies']['policy']
+        url = self.url + '/policies'
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()['policies']
+        else:
+            return r
 
 
-    def get_scan_policy(self, policy_name):
-        ''' return policy record with name of 'policy_name'; first hit only 
-            use the 'object_id' in the response as the policy_id
+    def get_scan_policy_by_id(self, policy_id):
+        ''' returns single scan policy by policy_id '''
+        url = self.url + '/policies/' + str(policy_id)
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 404:
+            raise Exception('Scan Policy not found')
+        else:
+            raise Exception('Unknown Status')
+
+    def get_scan_policy_by_name(self, policy_name):
+        ''' return policy record with name of 'policy_name'; 
+            first hit only 
         '''
         policies = self.get_scan_policies()
         for p in policies:
@@ -115,169 +138,74 @@ class NessusRestClient:
         return None
 
 
-    def launch_scan(self,
-                    scan_name,
-                    description,
-                    targets,
-                    policy_id,
-                    emails,
-                    tag_id = 5,
-                    scanner_id = 1):
-        ''' Launch a scan 
-            'scan_name' - string of name for the scan
-            'description' - string of description for the scan
-            'targets' - list of targets to scan
-            'policy_id' - use 'get_scan_policy's object_id, of the scan policy
-            'emails' - list of emails to send result(s) to
-            'tag_id' - unknown; observed 5
-            'scanner_id' - unknown; observed 1
+    def get_folders(self):
+        ''' returns a list of folders '''
+        url = self.url + '/folders'
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()['folders']
+        elif r.status_code == 403:
+            raise Exception('No Permission')
+        else:
+            return r
+
+
+    def get_folder_by_name(self, folder_name):
+        ''' return folder record with name of 'folder_name'; 
+            first hit only 
         '''
-        try:
-            assert type(targets) is list
-            assert type(emails) is list
-        except:
-            logging.error('Invalid type: %s' % sys.exc_info())
-            return None
-        targets = '\n'.join([str(i) for i in targets]) # must be \n delim string
-        emails = '\n'.join([str(i) for i in emails]) # must be \n delim string
-        url = self.url + '/scan/new'
-        data = {'name'  : str(scan_name),
-                'description' : str(description),
-                'custom_targets': targets,
-                'emails': emails,
-                'policy_id' : str(policy_id),
-                'token' : self.token,
-                'tag_id' : tag_id,
-                'scanner_id' : scanner_id,
-                'notification_filter_type': 'and',
-                'notification_filters': '[]',
-                'json'  : '1'}
-        r, contents = self.__post(url, data) # uuid is the scan id
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['scan']
+        folders = self.get_folders()
+        for f in folders:
+            if f['name'] == folder_name:
+                return f
+        return None
 
 
-    def get_scan_info(self, uuid):
-        ''' returns status of scan uuid '''
-        url = self.url + '/result/details'
-        data = {'id'    : str(uuid),
-                'token' : self.token,
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['info']
+    def get_scanners(self):
+        ''' returns a list of scanners '''
+        url = self.url + '/scanners'
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 403:
+            raise Exception('No Permission')
+        else:
+            raise Exception('Unknown Status')
 
 
-    def __request_xml_download(self, uuid):
-        ''' requests to download report uuid as xml; returns file-id '''
-        url = self.url + '/result/export'
-        data = {'id'    : str(uuid),
-                'token' : self.token,
-                'format': 'nessus.v2',
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['file']
+    def get_scans(self):
+        '''  returns a list of scans '''
+        url = self.url + '/scans'
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()['scans']
+        else:
+            raise Exception('Unknown Response')
 
 
-    def __check_file_dl_status(self, file_id):
-        ''' checks status of file_id; returns status '''
-        url = self.url + '/result/export/status'
-        data = {'rid'    : str(file_id),
-                'token' : self.token,
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['status']
+    def get_scan_details(self, scan_id):
+        '''  returns a list of scans '''
+        url = self.url + '/scans/' + str(scan_id)
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 404:
+            raise Exception('Scan does not exist')
+        else:
+            raise Exception('Unknown Response')
 
 
-    def dl_xml_report(self, uuid):
-        ''' downloads report for uuid; returns file '''
-        file_id = self.__request_xml_download(uuid)
-        status = ''
-        count = 0
-        while status != 'ready':
-            if count > 30:
-                return 'skipped'
-            status = self.__check_file_dl_status(file_id)
-            count += 1
-            time.sleep(10)
-
-        resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
-        if len(resp.content) == 0:
-            raise Exception('ERROR: Zero content length')
-        return resp
-
-
-    def __request_html_download(self, uuid):
-        ''' requests to download report uuid as xml; returns file-id '''
-        url = self.url + '/result/export'
-        data = {'id'      : str(uuid),
-                'token'   : self.token,
-                'format'  : 'nchapter.html',
-                'chapters': 'vuln_hosts_summary;vuln_by_plugin;vuln_by_host',
-                'json'    : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['file']
-
-
-    def dl_html_report(self, uuid):
-        ''' downloads report for uuid; returns file '''
-        file_id = self.__request_html_download(uuid)
-        status = ''
-        count = 0
-        while status != 'ready':
-            if count > 30:
-                return 'skipped'
-            status = self.__check_file_dl_status(file_id)
-            count += 1
-            time.sleep(10)
-
-        resp = self.s.get(self.url + '/result/export/download?rid=%s&token=%s' % (file_id, self.token))
-        if len(resp.content) == 0:
-            raise Exception('ERROR: Zero content length')
-        return resp
-
-
-    def get_scheduled_scans(self):
-        '''  returns a list of scheduled scan dicts; 'id'
-             in response is the schedule_id
-        '''
-        url = self.url + '/schedule/list'
-        data = {'token' : self.token,
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents
-
-
-    def get_scheduled_scan(self, scan_name):
-        ''' returns a scan record with name scan_name '''
-        scans = self.get_scheduled_scans()
-        for s in scans:
-            if s['name'] == scan_name:
-                return s
-
-
-    def launch_scheduled_scan(self, schedule_id):
-        '''  launch a scheduled scans '''
-        url = self.url + '/schedule/launch'
-        data = {'schedule_id' : schedule_id,
-                'token' : self.token,
-                'json'  : '1'}
-        r, contents = self.__post(url, data)
-        if r == 'error':
-            raise Exception('Unknown Error --> ' + str(contents))
-        return contents['scan']
-
-
-
+    def launch_scan(self, scan_id):
+        ''' launch a scan by its scan_id '''
+        url = self.url + '/scans/' + str(scan_id) + '/launch'
+        r = self.__request(url, method='POST')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 404:
+            raise Exception('Scan does not exist')
+        elif r.status_code == 403:
+            raise Exception('Scan is disabled')
+        else:
+            raise Exception('Unknown Status')
 
 
