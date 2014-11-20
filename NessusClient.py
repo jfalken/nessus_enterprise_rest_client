@@ -217,6 +217,8 @@ class NessusRestClient:
             until the export is ready. after the export is ready,
             you can then download the report
         '''
+        if format.lower() == 'xml':
+            format = 'nessus'
         formats = ['nessus', 'html', 'pdf', 'csv', 'db']
         format = format.lower()
         assert format in formats
