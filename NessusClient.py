@@ -46,7 +46,7 @@ class NessusRestClient:
         self.proxies = proxies
 
 
-    def __request(self, url, data={}, method='POST'):
+    def __request(self, url, data={}, json={}, method='POST'):
         ''' POST wrapper, returns response and .json()['reply']['contents'] 
             or ('error',error message) if an error occurs
         '''
@@ -54,24 +54,28 @@ class NessusRestClient:
             self.login()
         if method == 'GET':
             if self.proxies:
-                r = self.s.get(url=url, data=data, proxies=self.proxies, verify=self.verify)
+                r = self.s.get(url=url, data=data, json=json,
+                               proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.get(url=url, data=data, verify=self.verify)
+                r = self.s.get(url=url, data=data, json=json, verify=self.verify)
         if method == 'POST':
             if self.proxies:
-                r = self.s.post(url=url, data=data, proxies=self.proxies, verify=self.verify)
+                r = self.s.post(url=url, data=data, json=json,
+                                proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.post(url=url, data=data, verify=self.verify)
+                r = self.s.post(url=url, data=data, json=json, verify=self.verify)
         if method == 'DELETE':
             if self.proxies:
-                r = self.s.delete(url=url, data=data, proxies=self.proxies, verify=self.verify)
+                r = self.s.delete(url=url, data=data, json=json,
+                                  proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.delete(url=url, data=data, verify=self.verify)
+                r = self.s.delete(url=url, data=data, json=json, verify=self.verify)
         if method == 'PUT':
             if self.proxies:
-                r = self.s.put(url=url, data=data, proxies=self.proxies, verify=self.verify)
+                r = self.s.put(url=url, data=data, json=json,
+                               proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.put(url=url, data=data, verify=self.verify)
+                r = self.s.put(url=url, data=data, json=json, verify=self.verify)
 
         return r
 
@@ -126,6 +130,7 @@ class NessusRestClient:
             raise Exception('Scan Policy not found')
         else:
             raise Exception('Unknown Status')
+
 
     def get_scan_policy_by_name(self, policy_name):
         ''' return policy record with name of 'policy_name'; 
@@ -184,7 +189,7 @@ class NessusRestClient:
 
 
     def get_scan_details(self, scan_id):
-        '''  returns a list of scans '''
+        '''  get scan details for scan_id '''
         url = self.url + '/scans/' + str(scan_id)
         r = self.__request(url, method='GET')
         if r.status_code == 200:
@@ -209,3 +214,77 @@ class NessusRestClient:
             raise Exception('Unknown Status')
 
 
+    def export_scan(self, scan_id, format):
+        ''' requests a report export; returns file_id
+            scan_id - int of scan id
+            format - string, 'nessus','html','pdf', 'csv' or 'db'
+
+            returns file_id. file_id's status must then be checked 
+            until the export is ready. after the export is ready, 
+            you can then download the report
+        '''
+        formats = ['nessus','html','pdf','csv','db']
+        format = format.lower()
+        assert format in formats
+        chapters = ['vuln_hosts_summary','vuln_by_host','compliance_exec',
+                    'remediations','vuln_by_plugin','compliance']
+        url = self.url + '/scans/' + str(scan_id) + '/export'
+        data = { 'chapters': chapters,
+                 'format'  : format }
+        r = self.__request(url, json=data, method='POST')
+        if r.status_code == 200:
+            return r.json()['file']
+        elif r.status_code == 400:
+            raise Exception('Missing Parameters')
+        elif r.status_code == 404:
+            raise Exception('Scan does not exist')
+        else:
+            raise Exception('Unknown Response')
+
+
+    def export_status(self, scan_id, file_id):
+        '''  returns status of export file_id for scan_id '''
+        url = '%s/scans/%s/export/%s/status' % \
+                (self.url, str(scan_id), str(file_id))
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.json()['status']
+        elif r.status_code == 404:
+            raise Exception('Scan or file does not exist')
+        else:
+            raise Exception('Unknown Response')
+
+
+    def download_export(self, scan_id, file_id):
+        '''  downloads file_id for scan_id; must be in 'ready' status '''
+        url = '%s/scans/%s/export/%s/download' % \
+                (self.url, str(scan_id), str(file_id))
+        r = self.__request(url, method='GET')
+        if r.status_code == 200:
+            return r.content
+        elif r.status_code == 404:
+            raise Exception('Scan or file does not exist')
+        else:
+            raise Exception('Unknown Response')
+
+
+    def download_report(self, scan_id, format, time_delay=5):
+        ''' wrapper for downloading a report. will request the export,
+            check status until ready, and download the report returning
+            the raw contents
+            will retry 30 times, waiting time_delay between retries.
+            increase time_delay if your status checks are timing out.
+        '''
+        file_id = self.export_scan(scan_id, format)
+        status = ''
+        count = 0
+        while status != 'ready':
+            if count > 30:
+                raise Exception('Report download timed out')
+            status = self.export_status(scan_id, file_id)
+            count += 1
+            time.sleep(time_delay)
+
+        time.sleep(3)
+        contents = self.download_export(scan_id, file_id)
+        return contents
