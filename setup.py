@@ -7,4 +7,5 @@ setup(
     author='jfalken',
     url='https://github.com/jfalken/nessus_enterprise_rest_client',
     install_requires=['requests'],
+    py_modules='NessusClient'
 )
