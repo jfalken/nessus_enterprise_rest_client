@@ -4,6 +4,8 @@ This is a python library for interfacing with the Nessus v6 API.
 
 This library was originally made by reversing the web API as a user logged into the console. Since then, Tenable has released their v6 REST API and this module has been adjusted to work with the v6 API.
 
+Official API documentation can be obtained by connecting to your Nessus server under `:8834/nessus6-api.html`
+
 Proxies are supported, and SSL Certification verification can be disabled if you are using a local build w/ self-signed certs.
 
 ## Installation
@@ -51,8 +53,23 @@ nrc = NRC(server,username,password,proxies=proxies)
 report_contents = nrc.download_report(report_id, 'xml')
 ```
 
-### Launching a Scan
+### Creating and Launching a New Scan
 
 ```python
-scan_uuid = nrc.launch_scan(scan_id)
+
+# Create a scan via the UI, or use pre-existing
+policy = nrc.get_scan_policy_by_name('Perimeter Scan')
+uuid = policy['template_uuid']
+ 
+# Create the Settings
+targets = ['10.0.0.1','10.0.0.2']
+emails = ['boba.fett@kamino.net','anakin@tatooine.org']
+settings = nrc.get_settings_dict(uuid, 'My Scan Name','Description', emails, targets)
+
+# Create the Scan
+scan = nrc.create_scan(settings)
+
+# Launch It
+scan_id = scan['id']
+resp = nrc.launch_scan(scan_id)
 ```

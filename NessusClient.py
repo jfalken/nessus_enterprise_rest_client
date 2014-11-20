@@ -195,6 +195,41 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Response')
 
+    def get_settings_dict(self, policy_uuid, scan_name, description,
+                          emails, targets):
+        ''' returns an scan settings dictionary.
+            this is the minimum set of required fields
+            for creating a new scan.
+            'targets' and 'emails' must be a list
+            review /nessus6-api.html/resources/scans/create for more
+        '''
+        assert type(targets) is list
+        assert type(emails) is list
+        targets = '\n'.join(targets) # must be a newline delim string
+        emails = '\n'.join(emails) # ditto
+        d = {'uuid': policy_uuid,
+             'settings': {
+                 'name': scan_name,
+                 'emails': emails,
+                 'description': description,
+                 'text_targets': targets}}
+        return d
+
+    def create_scan(self, settings):
+        ''' create a new scan. settings is a dict from
+            `get_settings_dict`
+        '''
+        url = self.url + '/scans'
+        r = self.__request(url, json=settings, method='POST')
+        if r.status_code == 200:
+            return r.json()['scan']
+        elif r.status_code == 404:
+            raise Exception('Scan does not exist')
+        elif r.status_code == 403:
+            raise Exception('Scan is disabled')
+        else:
+            raise Exception('Unknown Status')
+
     def launch_scan(self, scan_id):
         ''' launch a scan by its scan_id '''
         url = self.url + '/scans/' + str(scan_id) + '/launch'
