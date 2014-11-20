@@ -57,7 +57,7 @@ report_contents = nrc.download_report(report_id, 'xml')
 
 ```python
 
-# Create a scan via the UI, or use pre-existing
+# First, create a scan policy via the UI, or use pre-existing; get its uuid
 policy = nrc.get_scan_policy_by_name('Perimeter Scan')
 uuid = policy['template_uuid']
  
