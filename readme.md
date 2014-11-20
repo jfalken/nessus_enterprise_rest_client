@@ -86,3 +86,38 @@ scan = nrc.create_scan(settings)
 scan_id = scan['id']
 resp = nrc.launch_scan(scan_id)
 ```
+
+### Getting Scan details and Inserting to MongoDB
+
+Since the API allows retrieveing scan details and results in JSON format, its simple to insert this information into MongoDB.
+
+The 'details' method produces alot of information; only a small set is shown here.
+
+```python
+from pymongo import MongoClient
+
+# Get scan details
+details = nrc.get_scan_details(scan_id)
+
+# Insert into MongoDB
+client = MongoClient()
+col = client['nessus']['scans']
+col.insert(details)
+
+# Show the vulnerabilities
+c = col.find({'info.name' : 'scan_name'}, { 'hosts.severitycount': 1})
+
+pprint.pprint(c[0])
+{u'_id': ObjectId('546e6f0c1d0e83058674331e'),
+ u'hosts': [{u'severitycount': {u'item': [{u'count': 33,
+                                           u'severitylevel': 0},
+                                          {u'count': 0,
+                                           u'severitylevel': 1},
+                                          {u'count': 0,
+                                           u'severitylevel': 2},
+                                          {u'count': 0,
+                                           u'severitylevel': 3},
+                                          {u'count': 0,
+                                           u'severitylevel': 4}]}},
+```
+
