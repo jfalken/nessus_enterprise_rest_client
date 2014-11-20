@@ -22,14 +22,16 @@ class MyAdapter(HTTPAdapter):
                                        block=block,
                                        ssl_version=ssl.PROTOCOL_TLSv1)
 
+
 class NessusRestClient:
     ''' Uses the undocumented REST API for Nessus (ie, the web interface) '''
 
-    def __init__(self, server, username, password, port=443, verify=True, proxies=None):
+    def __init__(self, server, username, password,
+                 port=443, verify=True, proxies=None):
         ''' 'server' - https://nessus.server.org
             'username' - login username
             'password' - login password
-            'verify' - SSL cert verification; set to False if using locally and self-signed certs
+            'verify' - SSL cert verification
             'port' - optional; int of port, default is 443
             'proxies' - optional; dict of 'http' and 'https' proxies w port
         '''
@@ -45,58 +47,60 @@ class NessusRestClient:
         self.verify = verify
         self.proxies = proxies
 
-
     def __request(self, url, data={}, json={}, method='POST'):
-        ''' POST wrapper, returns response and .json()['reply']['contents'] 
+        ''' POST wrapper, returns response and .json()['reply']['contents']
             or ('error',error message) if an error occurs
         '''
-        if self.authenticated == False:
+        if self.authenticated is False:
             self.login()
         if method == 'GET':
             if self.proxies:
                 r = self.s.get(url=url, data=data, json=json,
                                proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.get(url=url, data=data, json=json, verify=self.verify)
+                r = self.s.get(url=url, data=data, json=json,
+                               verify=self.verify)
         if method == 'POST':
             if self.proxies:
                 r = self.s.post(url=url, data=data, json=json,
                                 proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.post(url=url, data=data, json=json, verify=self.verify)
+                r = self.s.post(url=url, data=data, json=json,
+                                verify=self.verify)
         if method == 'DELETE':
             if self.proxies:
                 r = self.s.delete(url=url, data=data, json=json,
                                   proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.delete(url=url, data=data, json=json, verify=self.verify)
+                r = self.s.delete(url=url, data=data, json=json,
+                                  verify=self.verify)
         if method == 'PUT':
             if self.proxies:
                 r = self.s.put(url=url, data=data, json=json,
                                proxies=self.proxies, verify=self.verify)
             else:
-                r = self.s.put(url=url, data=data, json=json, verify=self.verify)
+                r = self.s.put(url=url, data=data, json=json,
+                               verify=self.verify)
 
         return r
 
-
     def login(self):
-        ''' login; does not use the __request wrapper since this is pre-auth '''
+        ''' login '''
         self.authenticated = False
         self.token = None
         url = self.url + '/session'
-        data = {'username' : self.username,
-                'password' : self.password }
+        data = {'username': self.username,
+                'password': self.password}
         if self.proxies:
-            r = self.s.post(url=url, data=data, proxies=self.proxies, verify=self.verify)
+            r = self.s.post(url=url, data=data, proxies=self.proxies,
+                            verify=self.verify)
         else:
             r = self.s.post(url=url, data=data, verify=self.verify)
         contents = r.json()
         self.token = contents['token']
         self.authenticated = True
-        self.s.headers.update({'X-Cookie':'token=' + self.token})
+        self.s.headers.update({'X-Cookie': 'token=' + self.token})
         return r
-
 
     def logout(self):
         url = self.url + '/session'
@@ -109,7 +113,6 @@ class NessusRestClient:
         else:
             pass
 
-
     def get_scan_policies(self):
         ''' returns a list of all scan policies '''
         url = self.url + '/policies'
@@ -118,7 +121,6 @@ class NessusRestClient:
             return r.json()['policies']
         else:
             return r
-
 
     def get_scan_policy_by_id(self, policy_id):
         ''' returns single scan policy by policy_id '''
@@ -131,17 +133,15 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Status')
 
-
     def get_scan_policy_by_name(self, policy_name):
-        ''' return policy record with name of 'policy_name'; 
-            first hit only 
+        ''' return policy record with name of 'policy_name';
+            first hit only
         '''
         policies = self.get_scan_policies()
         for p in policies:
             if p['name'] == policy_name:
                 return p
         return None
-
 
     def get_folders(self):
         ''' returns a list of folders '''
@@ -154,17 +154,15 @@ class NessusRestClient:
         else:
             return r
 
-
     def get_folder_by_name(self, folder_name):
-        ''' return folder record with name of 'folder_name'; 
-            first hit only 
+        ''' return folder record with name of 'folder_name';
+            first hit only
         '''
         folders = self.get_folders()
         for f in folders:
             if f['name'] == folder_name:
                 return f
         return None
-
 
     def get_scanners(self):
         ''' returns a list of scanners '''
@@ -177,7 +175,6 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Status')
 
-
     def get_scans(self):
         '''  returns a list of scans '''
         url = self.url + '/scans'
@@ -186,7 +183,6 @@ class NessusRestClient:
             return r.json()['scans']
         else:
             raise Exception('Unknown Response')
-
 
     def get_scan_details(self, scan_id):
         '''  get scan details for scan_id '''
@@ -198,7 +194,6 @@ class NessusRestClient:
             raise Exception('Scan does not exist')
         else:
             raise Exception('Unknown Response')
-
 
     def launch_scan(self, scan_id):
         ''' launch a scan by its scan_id '''
@@ -213,24 +208,23 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Status')
 
-
     def export_scan(self, scan_id, format):
         ''' requests a report export; returns file_id
             scan_id - int of scan id
             format - string, 'nessus','html','pdf', 'csv' or 'db'
 
-            returns file_id. file_id's status must then be checked 
-            until the export is ready. after the export is ready, 
+            returns file_id. file_id's status must then be checked
+            until the export is ready. after the export is ready,
             you can then download the report
         '''
-        formats = ['nessus','html','pdf','csv','db']
+        formats = ['nessus', 'html', 'pdf', 'csv', 'db']
         format = format.lower()
         assert format in formats
-        chapters = ['vuln_hosts_summary','vuln_by_host','compliance_exec',
-                    'remediations','vuln_by_plugin','compliance']
+        chapters = ['vuln_hosts_summary', 'vuln_by_host', 'compliance_exec',
+                    'remediations', 'vuln_by_plugin', 'compliance']
         url = self.url + '/scans/' + str(scan_id) + '/export'
-        data = { 'chapters': chapters,
-                 'format'  : format }
+        data = {'chapters': chapters,
+                'format': format}
         r = self.__request(url, json=data, method='POST')
         if r.status_code == 200:
             return r.json()['file']
@@ -241,11 +235,10 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Response')
 
-
     def export_status(self, scan_id, file_id):
         '''  returns status of export file_id for scan_id '''
         url = '%s/scans/%s/export/%s/status' % \
-                (self.url, str(scan_id), str(file_id))
+              (self.url, str(scan_id), str(file_id))
         r = self.__request(url, method='GET')
         if r.status_code == 200:
             return r.json()['status']
@@ -254,11 +247,10 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Response')
 
-
     def download_export(self, scan_id, file_id):
         '''  downloads file_id for scan_id; must be in 'ready' status '''
         url = '%s/scans/%s/export/%s/download' % \
-                (self.url, str(scan_id), str(file_id))
+              (self.url, str(scan_id), str(file_id))
         r = self.__request(url, method='GET')
         if r.status_code == 200:
             return r.content
@@ -266,7 +258,6 @@ class NessusRestClient:
             raise Exception('Scan or file does not exist')
         else:
             raise Exception('Unknown Response')
-
 
     def download_report(self, scan_id, format, time_delay=5):
         ''' wrapper for downloading a report. will request the export,
