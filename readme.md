@@ -1,4 +1,4 @@
-# Nessus Enterprise Cloud Client
+# Nessus Enterprise Rest Client
 
 This is a python library for interfacing with the Nessus v6 API. 
 
