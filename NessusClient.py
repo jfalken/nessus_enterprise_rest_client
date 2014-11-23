@@ -196,9 +196,13 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Response')
 
-    def get_scan_details(self, scan_id):
+    def get_scan_details(self, scan_id, history_id=None):
         '''  get scan details for scan_id '''
-        url = self.url + '/scans/' + str(scan_id)
+        if history_id:
+            query_param = '?history_id=' + str(history_id)
+        else:
+            query_param = ''
+        url = self.url + '/scans/' + str(scan_id) + query_param
         r = self.__request(url, method='GET')
         if r.status_code == 200:
             return r.json()
