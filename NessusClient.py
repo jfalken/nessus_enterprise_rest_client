@@ -104,14 +104,26 @@ class NessusRestClient:
 
     def logout(self):
         url = self.url + '/session'
-        r = self.__request(url, method='DELETE')
+        if self.proxies:
+            r = self.s.delete(url=url, proxies=self.proxies,
+                            verify=self.verify)
+        else:
+            r = self.s.delete(url=url, verify=self.verify)
         if r.status_code == 200:
             self.authenticated = False
             self.token = None
             self.s.headers.pop('X-Cookie')
             return r
+        elif r.status_code == 403:
+            self.authenticated = False
+            self.token = None
+            try:
+                self.s.headers.pop('X-Cookie')
+            except:
+                pass
+            return r
         else:
-            pass
+            raise Exception('Unknown Error')
 
     def get_scan_policies(self):
         ''' returns a list of all scan policies '''
