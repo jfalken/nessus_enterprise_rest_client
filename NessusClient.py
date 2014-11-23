@@ -242,6 +242,21 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Status')
 
+    def modify_scan(self, scan_id, settings):
+        ''' modify an existing scan, 'scan_id'. use settings from settings
+            via `get_settings_dict` method
+        '''
+        url = self.url + '/scans/' + str(scan_id)
+        r = self.__request(url, json=settings, method='PUT')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 404:
+            raise Exception('Scan does not exist')
+        elif r.status_code == 500:
+            raise Exception('Error Saving the Scan')
+        else:
+            raise Exception('Unknown Status')
+
     def launch_scan(self, scan_id):
         ''' launch a scan by its scan_id '''
         url = self.url + '/scans/' + str(scan_id) + '/launch'
