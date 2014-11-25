@@ -219,9 +219,12 @@ class NessusRestClient:
         else:
             raise Exception('Unknown Status')
 
-    def get_scans(self):
+    def get_scans(self, folder_id=None):
         '''  returns a list of scans '''
-        url = self.url + '/scans'
+        if folder_id is None:
+            url = self.url + '/scans'
+        else:
+            url = self.url + '/scans?folder_id=' + str(folder_id)
         r = self.__request(url, method='GET')
         if r.status_code == 200:
             return r.json()['scans']
