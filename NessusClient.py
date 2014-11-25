@@ -249,7 +249,7 @@ class NessusRestClient:
             raise Exception('Unknown Response')
 
     def get_settings_dict(self, policy_uuid, scan_name, description,
-                          emails, targets):
+                          emails, targets, folder_id=None):
         ''' returns an scan settings dictionary.
             this is the minimum set of required fields
             for creating a new scan.
@@ -266,6 +266,8 @@ class NessusRestClient:
                  'emails': emails,
                  'description': description,
                  'text_targets': targets}}
+        if folder_id:
+            d['settings']['folder_id'] = str(folder_id)
         return d
 
     def create_scan(self, settings):
