@@ -88,6 +88,8 @@ class NessusRestClient:
         ''' login '''
         self.authenticated = False
         self.token = None
+        if 'X-Cookie' in self.s.headers:
+            self.s.headers.pop('X-Cookie')
         url = self.url + '/session'
         data = {'username': self.username,
                 'password': self.password}
