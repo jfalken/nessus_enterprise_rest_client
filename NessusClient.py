@@ -155,6 +155,38 @@ class NessusRestClient:
                 return p
         return None
 
+    def create_folder(self, folder_name):
+        ''' creates a folder named 'folder_name', return folder id '''
+        url = self.url + '/folders'
+        data = {'name': folder_name}
+        r = self.__request(url, json=data, method='POST')
+        if r.status_code == 200:
+            return r.json()['id']
+        elif r.status_code == 400:
+            raise Exception('Invalid Folder Name')
+        elif r.status_code == 403:
+            raise Exception('No Permission to create folder')
+        elif r.status_code == 500:
+            raise Exception('Folder Create: Server Failure')
+        else:
+            return r
+
+    def delete_folder(self, folder_id):
+        ''' deletes folder_id '''
+        assert int(folder_id)
+        url = self.url + '/folders/' + str(folder_id)
+        r = self.__request(url, method='DELETE')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 403:
+            raise Exception('Invalid Permissions to delete folder')
+        elif r.status_code == 404:
+            raise Exception('Delete folder; folder does not exist')
+        elif r.status_code == 500:
+            raise Exception('Folder Create: Server Failure')
+        else:
+            return r
+
     def get_folders(self):
         ''' returns a list of folders '''
         url = self.url + '/folders'
