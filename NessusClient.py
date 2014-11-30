@@ -145,7 +145,7 @@ class NessusRestClient:
         elif r.status_code == 404:
             raise Exception('Scan Policy not found')
         else:
-            raise Exception('Unknown Status')
+            raise Exception('get scan policy by id - Unknown Status')
 
     def get_scan_policy_by_name(self, policy_name):
         ''' return policy record with name of 'policy_name';
@@ -219,7 +219,7 @@ class NessusRestClient:
         elif r.status_code == 403:
             raise Exception('No Permission')
         else:
-            raise Exception('Unknown Status')
+            raise Exception('get scanners - Unknown Status')
 
     def get_scans(self, folder_id=None):
         '''  returns a list of scans '''
@@ -283,7 +283,7 @@ class NessusRestClient:
         elif r.status_code == 403:
             raise Exception('Scan is disabled')
         else:
-            raise Exception('Unknown Status')
+            raise Exception('create scan - Unknown Status')
 
     def modify_scan(self, scan_id, settings):
         ''' modify an existing scan, 'scan_id'. use settings from settings
@@ -298,7 +298,7 @@ class NessusRestClient:
         elif r.status_code == 500:
             raise Exception('Error Saving the Scan')
         else:
-            raise Exception('Unknown Status')
+            raise Exception('modify scan - Unknown Status')
 
     def launch_scan(self, scan_id):
         ''' launch a scan by its scan_id '''
@@ -311,7 +311,7 @@ class NessusRestClient:
         elif r.status_code == 403:
             raise Exception('Scan is disabled')
         else:
-            raise Exception('Unknown Status')
+            raise Exception('launch scan - Unknown Status')
 
     def export_scan(self, scan_id, format):
         ''' requests a report export; returns file_id
