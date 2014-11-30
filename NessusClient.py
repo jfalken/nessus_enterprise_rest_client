@@ -313,10 +313,12 @@ class NessusRestClient:
         else:
             raise Exception('launch scan - Unknown Status')
 
-    def export_scan(self, scan_id, format):
+    def export_scan(self, scan_id, format, chapters=None):
         ''' requests a report export; returns file_id
             scan_id - int of scan id
             format - string, 'nessus','html','pdf', 'csv' or 'db'
+            chapters - (optional) list of strings of chapters to include.
+                       default is include all chapters
 
             returns file_id. file_id's status must then be checked
             until the export is ready. after the export is ready,
@@ -327,8 +329,9 @@ class NessusRestClient:
         formats = ['nessus', 'html', 'pdf', 'csv', 'db']
         format = format.lower()
         assert format in formats
-        chapters = ['vuln_hosts_summary', 'vuln_by_host', 'compliance_exec',
-                    'remediations', 'vuln_by_plugin', 'compliance']
+        if chapters is None:
+            chapters = ['vuln_hosts_summary', 'vuln_by_host', 'compliance_exec',
+                        'remediations', 'vuln_by_plugin', 'compliance']
         url = self.url + '/scans/' + str(scan_id) + '/export'
         data = {'chapters': chapters,
                 'format': format}
