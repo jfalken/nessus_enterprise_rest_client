@@ -332,6 +332,7 @@ class NessusRestClient:
         if chapters is None:
             chapters = ['vuln_hosts_summary', 'vuln_by_host', 'compliance_exec',
                         'remediations', 'vuln_by_plugin', 'compliance']
+        chapters = ';'.join(chapters) # must be semicolon delim string; api docs are wrong
         url = self.url + '/scans/' + str(scan_id) + '/export'
         data = {'chapters': chapters,
                 'format': format}
