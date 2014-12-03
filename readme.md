@@ -23,11 +23,6 @@ requests==2.4.3
 wsgiref==0.1.2
 ```
 
-### via git 
-
-1. Clone this repo
-2. Inside a virtualenv, `pip install -r requirements.txt`
-
 ## Status
 
 Not all documented methods are implemented; this will be updated as I use it more and need more functionality. If you are using this, send me an issue/feature request and I'll work on it.
