@@ -3,10 +3,8 @@
 '''
 
 import requests
-import json
 import time
 import ssl
-import sys
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 
@@ -108,7 +106,7 @@ class NessusRestClient:
         url = self.url + '/session'
         if self.proxies:
             r = self.s.delete(url=url, proxies=self.proxies,
-                            verify=self.verify)
+                              verify=self.verify)
         else:
             r = self.s.delete(url=url, verify=self.verify)
         if r.status_code == 200:
@@ -258,8 +256,8 @@ class NessusRestClient:
         '''
         assert type(targets) is list
         assert type(emails) is list
-        targets = '\n'.join(targets) # must be a newline delim string
-        emails = '\n'.join(emails) # ditto
+        targets = '\n'.join(targets)  # must be a newline delim string
+        emails = '\n'.join(emails)  # ditto
         d = {'uuid': policy_uuid,
              'settings': {
                  'name': scan_name,
@@ -332,7 +330,7 @@ class NessusRestClient:
         if chapters is None:
             chapters = ['vuln_hosts_summary', 'vuln_by_host', 'compliance_exec',
                         'remediations', 'vuln_by_plugin', 'compliance']
-        chapters = ';'.join(chapters) # must be semicolon delim string; api docs are wrong
+        chapters = ';'.join(chapters)  # must be semicolon delim string; api docs are wrong
         url = self.url + '/scans/' + str(scan_id) + '/export'
         data = {'chapters': chapters,
                 'format': format}
