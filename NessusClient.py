@@ -311,6 +311,17 @@ class NessusRestClient:
         else:
             raise Exception('launch scan - Unknown Status')
 
+    def delete_scan(self, scan_id):
+        ''' delete a scan by its scan_id '''
+        url = self.url + '/scans/' + str(scan_id)
+        r = self.__request(url, method='DELETE')
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 500:
+            raise Exception('Scan deletion failed')
+        else:
+            raise Exception('Delete Scan - Unknown Status')
+
     def export_scan(self, scan_id, format, chapters=None):
         ''' requests a report export; returns file_id
             scan_id - int of scan id
