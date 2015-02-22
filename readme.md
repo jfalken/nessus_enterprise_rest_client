@@ -48,7 +48,7 @@ proxies = {
   "https": "http://127.0.0.1:8080",
 }
 
-nrc = NRC(server,username,password,proxies=proxies)
+nrc = NRC.NessusRestClient(server,username,password,proxies=proxies)
 
 ```
 
