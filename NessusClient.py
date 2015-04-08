@@ -5,21 +5,6 @@
 import requests
 import time
 import ssl
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-
-
-class MyAdapter(HTTPAdapter):
-    ''' via https://lukasa.co.uk/2013/01/Choosing_SSL_Version_In_Requests/
-        At the time of writing this, *.nessus.org only accepts TLS1.0.
-        This adapter forces requests to use TLS1.0
-    '''
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_TLSv1)
-
 
 class NessusRestClient:
     ''' Based on documentedion from https://cloud.tenable.com/api '''
@@ -34,7 +19,6 @@ class NessusRestClient:
             'proxies' - optional; dict of 'http' and 'https' proxies w port
         '''
         self.s = requests.Session()
-        self.s.mount('https://', MyAdapter())
         self.server = server
         self.port = port
         self.url = '%s:%s' % (server, str(port))
