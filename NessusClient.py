@@ -26,7 +26,7 @@ class NessusRestClient:
 
     def __init__(self, server, username, password,
                  port=443, verify=True, proxies=None):
-        ''' 'server' - https://nessus.server.org
+        ''' 'server' - https://cloud.tenable.com
             'username' - login username
             'password' - login password
             'verify' - SSL cert verification
@@ -92,10 +92,10 @@ class NessusRestClient:
         data = {'username': self.username,
                 'password': self.password}
         if self.proxies:
-            r = self.s.post(url=url, data=data, proxies=self.proxies,
+            r = self.s.post(url=url, json=data, proxies=self.proxies,
                             verify=self.verify)
         else:
-            r = self.s.post(url=url, data=data, verify=self.verify)
+            r = self.s.post(url=url, json=data, verify=self.verify)
         contents = r.json()
         self.token = contents['token']
         self.authenticated = True
