@@ -22,7 +22,7 @@ class MyAdapter(HTTPAdapter):
 
 
 class NessusRestClient:
-    ''' Uses the undocumented REST API for Nessus (ie, the web interface) '''
+    ''' Based on documentedion from https://cloud.tenable.com/api '''
 
     def __init__(self, server, username, password,
                  port=443, verify=True, proxies=None):
